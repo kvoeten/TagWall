@@ -25,22 +25,33 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.pmw.tinylog.Configurator;
 
 /**
  *
  * @author Kaz Voeten
  */
 public class RFIDReader extends Thread {
+
     public static MFRC522 moduleRef;
 
     @Override
     public void run() {
         try (MFRC522 module = new MFRC522(24, 0, 22)) { //Change values if module is attached differently.
             RFIDReader.moduleRef = module;
+            
+            //Disable the annoying spam log friom diozero
+            Configurator.currentConfig().resetCustomLevels();
+            Configurator.currentConfig().level(org.pmw.tinylog.Level.INFO).activate();
+            Configurator.currentConfig().removeAllWriters();
+            module.setLogReadsAndWrites(false);
+            
+            //Schedule scan every second.
             ScheduledExecutorService threadPool = Executors.newScheduledThreadPool(1);
             threadPool.scheduleAtFixedRate(() -> {
                 scan(module);
             }, 0, 1, TimeUnit.SECONDS); //Can change the delay if this is too demanding (1 sec atm)
+        
         } catch (Exception ex) {
             Logger.getLogger(RFIDReader.class.getName()).log(Level.SEVERE, "Unable to initate RFID reader module.", ex);
         }
@@ -55,19 +66,19 @@ public class RFIDReader extends Thread {
         if (uid == null) {
             return;
         }
-        
-        //To interpret every UID as long (can be 8bytes, most are 4) we cast it to long.
+
+        //To interpret every UID as long (can be 8 bytes, most are 4) we cast it to long.
         byte[] UIDRaw = uid.getUidBytes();
         byte[] UID = new byte[8];
         System.arraycopy(UIDRaw, 0, UID, 0, UIDRaw.length);
-        Logger.getLogger(RFIDReader.class.getName()).log(Level.INFO, "A new RFID token was found: ", ParseUID(UID));
-        
+        Logger.getLogger(RFIDReader.class.getName()).log(Level.INFO, "A new RFID token was found: {0}", ParseUID(UID));
+
         ServerSocket client = SocketHandler.socket;
         if (client == null) {
             Logger.getLogger(RFIDReader.class.getName()).log(Level.SEVERE, "Can't send token info since the server is unavailable.");
             return;
         }
-        
+
         client.SendPacket(PacketHandler.tokenInfo(ParseUID(UID)));
     }
 
@@ -81,7 +92,7 @@ public class RFIDReader extends Thread {
                 | ((long) UID[1] & 0xff) << 8
                 | ((long) UID[0] & 0xff);
     }
-    
+
     public static void shutDown() {
         if (RFIDReader.moduleRef != null) {
             RFIDReader.moduleRef.close();

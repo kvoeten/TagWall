@@ -18,6 +18,8 @@ package com.kazvoeten.tagwall.server.packet;
 
 import com.kazvoeten.tagwall.server.ClientSocket;
 import data.DataStorage;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.OutPacket;
 
 /**
@@ -27,6 +29,7 @@ import net.OutPacket;
 public class PacketHandler {
 
     public static OutPacket Verify(ClientSocket socket) {
+        Logger.getLogger(PacketHandler.class.getName()).log(Level.INFO, "Verified the connected client.");
         socket.verified = true;
 
         OutPacket oPacket = new OutPacket(LoopBackPacket.VERIFICATION_RESPONSE);
@@ -39,7 +42,7 @@ public class PacketHandler {
         } finally {
             DataStorage.getStorage().unlock();
         }
-
+        
         return oPacket;
     }
 }

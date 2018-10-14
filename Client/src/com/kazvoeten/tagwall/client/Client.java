@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.PacketDecoder;
 import net.PacketEncoder;
+import org.pmw.tinylog.Configurator;
 
 /**
  *
@@ -68,7 +69,7 @@ public class Client extends Thread {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, "Unable to connect to the server.", ex);
         } finally {
             workerGroup.shutdownGracefully();
-             try {
+            try {
                 Thread.sleep(30 * 1000);
                 connect();
             } catch (InterruptedException ex) {
@@ -78,6 +79,8 @@ public class Client extends Thread {
     }
 
     public static void main(String[] args) {
+        System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tF %1$tT] [%4$-7s] %5$s %n");
+
         Client client = new Client();
         client.start();
 

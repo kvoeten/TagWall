@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.InPacket;
 import net.Socket;
+import net.SocketMode;
 import util.HexUtils;
 
 /**
@@ -36,26 +37,31 @@ public class ClientSocket extends Socket {
     public ScheduledFuture<?> verificationTask;
 
     public ClientSocket(Channel channel, int uSeqSend, int uSeqRcv) {
-        super(channel, uSeqSend, uSeqRcv);
+        super(SocketMode.SERVER, channel, uSeqSend, uSeqRcv);
     }
 
     public void ProcessPacket(InPacket iPacket) {
-        short nPacketID = iPacket.DecodeShort();
-        switch (nPacketID) {
-            case ClientPacket.VERIFICATION_REQUEST:
-                PacketHandler.Verify(this);
-                break;
-            default:
-                Logger.getLogger(ClientSocket.class.getName()).log(Level.INFO, "Received unhandled Client packet. nPacketID: {0}. Data: {1}", 
-                        new Object[]{nPacketID, HexUtils.ToHex(iPacket.DecodeBuffer(iPacket.GetLength()))});
-                break;
+        try {
+            short nPacketID = iPacket.DecodeShort();
+            switch (nPacketID) {
+                case ClientPacket.VERIFICATION_REQUEST:
+                    SendPacket(PacketHandler.Verify(this));
+                    break;
+                default:
+                    Logger.getLogger(ClientSocket.class.getName()).log(Level.INFO, "Received unhandled Client packet. nPacketID: {0}. Data: {1}",
+                            new Object[]{nPacketID, HexUtils.ToHex(iPacket.DecodeBuffer(iPacket.GetLength()))});
+                    break;
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ClientSocket.class.getName()).log(Level.SEVERE, "An unknown exception has occured: ", ex);
         }
-
     }
 
     public void verificationCheck() {
         if (!verified) {
             this.Close();
+        } else {
+            verificationTask.cancel(false);
         }
     }
 }

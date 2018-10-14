@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.InPacket;
 import net.Socket;
+import net.SocketMode;
 import util.HexUtils;
 
 /**
@@ -34,24 +35,24 @@ public class ServerSocket extends Socket {
     public boolean verified = false;
 
     public ServerSocket(Channel channel, int uSeqSend, int uSeqRcv) {
-        super(channel, uSeqSend, uSeqRcv);
+        super(SocketMode.SERVER, channel, uSeqSend, uSeqRcv);
     }
 
     public void ProcessPacket(InPacket iPacket) {
-        if (!verified) {
-            PacketHandler.Verify(this, iPacket);
-        }
+        try {
+            short nPacketID = iPacket.DecodeShort();
+            switch (nPacketID) {
+                case ServerPacket.VERIFICATION_RESPONSE:
+                    PacketHandler.Verify(this, iPacket);
+                    break;
+                default:
+                    Logger.getLogger(ServerSocket.class.getName()).log(Level.INFO, "Received unhandled Client packet. nPacketID: {0}. Data: {1}",
+                            new Object[]{nPacketID, HexUtils.ToHex(iPacket.DecodeBuffer(iPacket.GetLength()))});
 
-        short nPacketID = iPacket.DecodeShort();
-        switch (nPacketID) {
-            case ServerPacket.VERIFICATION_RESPONSE:
-                PacketHandler.Verify(this, iPacket);
-                break;
-            default:
-                Logger.getLogger(ServerSocket.class.getName()).log(Level.INFO, "Received unhandled Client packet. nPacketID: {0}. Data: {1}", 
-                        new Object[]{nPacketID, HexUtils.ToHex(iPacket.DecodeBuffer(iPacket.GetLength()))});
-                
-                break;
+                    break;
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ServerSocket.class.getName()).log(Level.SEVERE, "An unknown exception has occured: ", ex);
         }
     }
 }

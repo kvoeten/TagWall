@@ -19,6 +19,8 @@ package com.kazvoeten.tagwall.client.packet;
 import com.kazvoeten.tagwall.client.ServerSocket;
 import com.kazvoeten.tagwall.client.visual.DataStorage;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.InPacket;
 import net.OutPacket;
 
@@ -27,25 +29,26 @@ import net.OutPacket;
  * @author Kaz Voeten
  */
 public class PacketHandler {
+
     public static void Verify(ServerSocket socket, InPacket iPacket) {
-        if (iPacket.DecodeShort() == ServerPacket.VERIFICATION_RESPONSE) {
-            socket.verified = true;
-            
-            int size = iPacket.DecodeInt();
-            ArrayList<String> quotes = new ArrayList<>();
-            for(int i = 0; i < size; i++) {
-                quotes.add(iPacket.DecodeString());
-            }
-            
-            DataStorage.getStorage().SetQuotes(quotes);
+        Logger.getLogger(PacketHandler.class.getName()).log(Level.INFO, "Received verification from the server.");
+        socket.verified = true;
+
+        int size = iPacket.DecodeInt();
+        ArrayList<String> quotes = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            quotes.add(iPacket.DecodeString());
         }
+
+        Logger.getLogger(PacketHandler.class.getName()).log(Level.INFO, "Loaded {0} quotes.", quotes.size());
+        DataStorage.getStorage().SetQuotes(quotes);
     }
-    
+
     public static OutPacket verificationRequest() {
         OutPacket oPacket = new OutPacket(LoopBackPacket.VERIFICATION_REQUEST);
         return oPacket;
     }
-    
+
     public static OutPacket tokenInfo(long uid) {
         OutPacket oPacket = new OutPacket(LoopBackPacket.TOKEN_INFO);
         oPacket.EncodeLong(uid);
